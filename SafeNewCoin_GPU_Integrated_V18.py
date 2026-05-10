@@ -64,8 +64,8 @@ MIN_REWARD = 0.0001
 DEFAULT_DIFFICULTY = 1
 TARGET_BLOCK_TIME = 3.0
 
-LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 8787
+LOCAL_HOST = "0.0.0.0"
+LOCAL_PORT = int(os.environ.get("PORT", 8787))
 
 THREADS_PER_BLOCK = 256
 CPU_BATCH = 100_000
@@ -1515,7 +1515,7 @@ def open_browser_later():
     time.sleep(1.0)
     if CONFIG.get("auto_open_browser", True):
         try:
-            webbrowser.open(f"http://{LOCAL_HOST}:{LOCAL_PORT}")
+            webbrowser.open(f"http://127.0.0.1:{LOCAL_PORT}")
         except Exception:
             pass
 
@@ -1527,7 +1527,7 @@ def main():
     log_line(f"PROOF MODE: {PROOF.mode}")
     if PROOF.gpu_error:
         log_line(f"GPU ERROR: {PROOF.gpu_error}")
-    log_line(f"WEB UI: http://{LOCAL_HOST}:{LOCAL_PORT}")
+    log_line(f"WEB UI: http://0.0.0.0:{LOCAL_PORT}")
 
     threading.Thread(target=open_browser_later, daemon=True).start()
     app.run(host=LOCAL_HOST, port=LOCAL_PORT, debug=False, threaded=True)
