@@ -1,14 +1,13 @@
-
 # ============================================================
-# SafeNewCoin GPU Integrated V16
-# 파일명: SafeNewCoin_GPU_Integrated_V16.py
+# SafeNewCoin GPU Integrated V16 -> V18
+# 파일명: SafeNewCoin_GPU_Integrated_V18.py
 #
 # V8 GPU CUDA 커널 + V15 지갑/체인/송금/총량/네트워크 준비 UI 통합
 # 실제 GPU mode일 때 GPU로 nonce 탐색
 # CUDA 실패 시 CPU fallback
 #
 # 실행:
-#   python SafeNewCoin_GPU_Integrated_V16.py
+#   python SafeNewCoin_GPU_Integrated_V18.py
 #
 # 필수:
 #   python -m pip install flask
@@ -53,8 +52,8 @@ except Exception as e:
 
 
 APP_NAME = "SafeNewCoin"
-APP_VERSION = "V16 GPU INTEGRATED"
-APP_FILE_NAME = "SafeNewCoin_GPU_Integrated_V16.py"
+APP_VERSION = "V18 SUPPLY DIFFICULTY"
+APP_FILE_NAME = "SafeNewCoin_GPU_Integrated_V18.py"
 COIN_SYMBOL = "SNC"
 
 MAX_SUPPLY = 52_000_000
@@ -62,18 +61,18 @@ HALVING_INTERVAL = 1_000_000
 INITIAL_REWARD = 1.0
 MIN_REWARD = 0.0001
 
-DEFAULT_DIFFICULTY = 6
+DEFAULT_DIFFICULTY = 1
 TARGET_BLOCK_TIME = 3.0
 
 LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 8787
 
-THREADS_PER_BLOCK = 192
+THREADS_PER_BLOCK = 256
 CPU_BATCH = 100_000
 
 DEFAULT_GPU_BLOCKS = 16_384
 DEFAULT_LOOP_COUNT = 192
-MAX_GPU_TEMP = 72
+MAX_GPU_TEMP = 65
 TARGET_GPU_UTIL = 55
 
 
@@ -926,6 +925,12 @@ class Blockchain:
         save_config(CONFIG)
         return difficulty
 
+    def supply_based_difficulty(self, current_supply: float) -> int:
+        if MAX_SUPPLY <= 0:
+            return 1
+        diff = 1 + int((current_supply / MAX_SUPPLY) * 14)
+        return max(1, min(15, diff))
+
     def add_block(self, block: Dict[str, Any]) -> Tuple[bool, str]:
         with self.lock:
             if block.get("hash") in self.seen_hashes:
@@ -947,7 +952,14 @@ class Blockchain:
             self.blocks.append(block)
             self.seen_hashes.add(block["hash"])
             TX.commit_txs(block.get("transactions", []))
-            self.auto_adjust_difficulty()
+            
+            self.stats["difficulty"] = self.supply_based_difficulty(
+                self.total_supply()
+            )
+
+            CONFIG["difficulty"] = self.stats["difficulty"]
+
+            save_config(CONFIG)
             self.light_save()
 
             if len(self.blocks) % 100 == 0:
@@ -1096,6 +1108,13 @@ class HardwareMonitor:
                         self.gpu_temp = temp
                         self.gpu_util = util
                         self.gpu_vram = vram
+
+                        if temp >= 65:
+                            run_cmd([
+                                "nvidia-smi",
+                                "-pl",
+                                "300"
+                            ])
                 time.sleep(1)
             except Exception:
                 time.sleep(2)
@@ -1289,7 +1308,7 @@ HTML = r'''
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafeNewCoin GPU V16</title>
+<title>SafeNewCoin GPU V18</title>
 <style>
 :root{--bg:#07111f;--text:#edf6ff;--muted:#9bb0c8;--blue:#4f7cff;--green:#18b86b;--orange:#ff9f1c;--red:#ff4d4d;--line:rgba(255,255,255,.1)}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0%,#1e3458,#07111f 42%,#03070d);color:var(--text);font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif}button,input{font-family:inherit}.wrap{max-width:1450px;margin:0 auto;padding:22px}.hero{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:24px;border-radius:28px;background:linear-gradient(135deg,rgba(79,124,255,.18),rgba(24,184,107,.12));border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.3)}.hero h1{margin:0;font-size:34px}.hero p{margin:8px 0 0;color:var(--muted)}.badge{display:inline-flex;align-items:center;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.12);font-weight:800}.badge.on{background:rgba(24,184,107,.22);color:#8bffbf}.badge.off{background:rgba(255,159,28,.18);color:#ffd08c}.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:18px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));border:1px solid var(--line);box-shadow:0 12px 34px rgba(0,0,0,.2)}.card b{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}.card strong{font-size:25px}.section{margin-top:18px}.section h2{margin:0 0 12px;font-size:22px}.row{display:flex;gap:10px;flex-wrap:wrap}.btn{border:0;border-radius:14px;padding:12px 16px;background:var(--blue);color:white;font-weight:800;cursor:pointer}.btn.green{background:var(--green)}.btn.orange{background:var(--orange);color:#1e1300}.btn.red{background:var(--red)}.btn:hover{filter:brightness(1.12)}.input{width:100%;padding:13px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:white;outline:none}.console{height:230px;overflow:auto;white-space:pre-wrap;padding:14px;border-radius:16px;background:#02060b;color:#b8ffd3;font-family:Consolas,monospace;font-size:12px;border:1px solid rgba(255,255,255,.08)}.progress{height:28px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}.fill{height:100%;width:0%;background:linear-gradient(90deg,#18b86b,#9dffba);transition:.4s}@media(max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.hero{flex-direction:column;align-items:flex-start}.g4,.g3,.g2{grid-template-columns:1fr}.hero h1{font-size:26px}}
@@ -1298,7 +1317,7 @@ HTML = r'''
 <body>
 <div class="wrap">
   <div class="hero">
-    <div><h1>SafeNewCoin GPU V16</h1><p>실제 CUDA GPU 채굴 / CPU 자동전환 / 지갑 / 송금 / 자동복구 / 총량제한 / 네트워크 준비</p></div>
+    <div><h1>SafeNewCoin GPU V18</h1><p>총 채굴량 기반 난이도 / GPU 지속 채굴 / 난이도 폭증 제거 / GPU 65도 유지</p></div>
     <div class="row"><span id="modeBadge" class="badge off">LOCAL</span><span id="mineBadge" class="badge off">MINER OFF</span><span id="engineBadge" class="badge off">CPU</span><span id="healthBadge" class="badge on">OK</span></div>
   </div>
 
