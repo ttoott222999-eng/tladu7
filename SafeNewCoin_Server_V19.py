@@ -1,22 +1,4 @@
-# ============================================================
-# SafeNewCoin Server V20 FIXED
-# Render 서버 전용 코드
-#
-# FIX 핵심:
-# - DB 파일명을 server_v20_fixed.db 로 변경해서 기존 깨진 DB 영향 차단
-# - GPU nonce / seed / proof 를 SQLite INTEGER가 아닌 TEXT로 저장
-# - /api/mining/submit 에 try/except 추가해서 500 대신 JSON 에러 반환
-# - 회원가입 / 로그인 / 토큰 / 지갑 / 잔액 / 채굴 제출 / 송금 / 탐색 / 백업 지원
-#
-# Render Build Command:
-#   pip install flask requests gunicorn
-#
-# Render Start Command 권장:
-#   gunicorn SafeNewCoin_Server_V20_FIXED:app
-#
-# 간단 실행:
-#   python SafeNewCoin_Server_V20_FIXED.py
-# ============================================================
+
 
 import os
 import json
